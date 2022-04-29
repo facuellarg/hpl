@@ -11,6 +11,12 @@ var (
 		'🤜': '🤛',
 		'🤛': '🤜',
 	}
+	reducible = map[rune]bool{
+		'👈': true,
+		'👉': true,
+		'👆': true,
+		'👇': true,
+	}
 )
 
 func main() {
@@ -18,7 +24,6 @@ func main() {
 	sc := bufio.NewScanner(bufio.NewReader(os.Stdin))
 	sc.Scan()
 	input := []rune(sc.Text())
-
 	println(hpl(input))
 
 }
@@ -60,18 +65,18 @@ func lookUpPair(input []rune, index, step int) int {
 }
 
 // exec executes the command at the current index and returns the new index and the memory index
-func exec(input []rune, index int, memory []byte, indexMemory int, output *[]byte, pairPositions []int) (int, int) {
+func exec(input []rune, repetitions []int, index int, memory []byte, indexMemory int, output *[]byte, pairPositions []int) (int, int) {
 	cmd := input[index]
 	switch cmd {
 	case '👉':
 
-		indexMemory++
+		indexMemory += repetitions[index]
 	case '👈':
-		indexMemory--
+		indexMemory -= repetitions[index]
 	case '👆':
-		memory[indexMemory] = byte(addWithModule(int(memory[indexMemory]), 1, Module))
+		memory[indexMemory] = byte(addWithModule(int(memory[indexMemory]), repetitions[index], Module))
 	case '👇':
-		memory[indexMemory] = byte(addWithModule(int(memory[indexMemory]), -1, Module))
+		memory[indexMemory] = byte(addWithModule(int(memory[indexMemory]), -1*repetitions[index], Module))
 	case '🤜':
 		if memory[indexMemory] == 0 {
 			if pairPositions[index] == -1 {
@@ -93,19 +98,44 @@ func exec(input []rune, index int, memory []byte, indexMemory int, output *[]byt
 
 }
 
+func reduce(input []rune, reducible map[rune]bool) ([]rune, []int) {
+	repetitions := make([]int, 0, len(input))
+	reduceInput := make([]rune, 0, len(input))
+	for i := 0; i < len(input); i++ {
+		reduceInput = append(reduceInput, input[i])
+		repetitions = append(repetitions, 1)
+		if reducible[input[i]] {
+			repetition := 0
+			initial := input[i]
+			current := input[i+1]
+			for current == initial {
+				repetition++
+				current = input[i+repetition+1]
+			}
+			i += repetition
+			repetitions[len(repetitions)-1] += repetition
+
+		}
+
+	}
+	return reduceInput, repetitions
+
+}
+
 // hpl executes the HPL program
 func hpl(input []rune) string {
 	var indexMemory int
 	memory := make([]byte, 1000)
 	output := make([]byte, 0)
 	// helper memory to store the position of the pairs
-	positions := make([]int, len(input))
+	prepro, rep := reduce(input, reducible)
+	positions := make([]int, len(prepro))
 	for i := 0; i < len(positions); i++ {
 		positions[i] = -1
 	}
 
-	for index := 0; index < len(input); index++ {
-		index, indexMemory = exec(input, index, memory, indexMemory, &output, positions)
+	for index := 0; index < len(prepro); index++ {
+		index, indexMemory = exec(prepro, rep, index, memory, indexMemory, &output, positions)
 	}
 	return string(output)
 }

@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
+	"time"
 )
 
 var (
@@ -24,7 +26,12 @@ func main() {
 	sc := bufio.NewScanner(bufio.NewReader(os.Stdin))
 	sc.Scan()
 	input := []rune(sc.Text())
-	println(hpl(input))
+	start := time.Now()
+	println(hplWithPrepro(input))
+	fmt.Printf("With preproc: %.9f\n", time.Since(start).Seconds())
+	start = time.Now()
+	println(hplWithOutPrepro(input))
+	fmt.Printf("Without preproc: %.9f\n", time.Since(start).Seconds())
 
 }
 
@@ -122,8 +129,9 @@ func reduce(input []rune, reducible map[rune]bool) ([]rune, []int) {
 
 }
 
-// hpl executes the HPL program
-func hpl(input []rune) string {
+// hplWithPrepro executes the HPL program with the preprocessing
+// for small inputs maybe is the option without preprocessing
+func hplWithPrepro(input []rune) string {
 	var indexMemory int
 	memory := make([]byte, 1000)
 	output := make([]byte, 0)
@@ -136,6 +144,27 @@ func hpl(input []rune) string {
 
 	for index := 0; index < len(prepro); index++ {
 		index, indexMemory = exec(prepro, rep, index, memory, indexMemory, &output, positions)
+	}
+	return string(output)
+}
+
+// hplWithoutPrepro executes the HPL program without the preprocessing
+func hplWithOutPrepro(input []rune) string {
+	var indexMemory int
+	memory := make([]byte, 1000)
+	output := make([]byte, 0)
+	// helper memory to store the position of the pairs
+	rep := make([]int, len(input))
+	for i := 0; i < len(input); i++ {
+		rep[i] = 1
+	}
+	positions := make([]int, len(input))
+	for i := 0; i < len(positions); i++ {
+		positions[i] = -1
+	}
+
+	for index := 0; index < len(input); index++ {
+		index, indexMemory = exec(input, rep, index, memory, indexMemory, &output, positions)
 	}
 	return string(output)
 }
